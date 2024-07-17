@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Animation
+*.h5
+*.xdmf
+*.xml.gz
+
+
 # Distribution / packaging
 .Python
 build/
