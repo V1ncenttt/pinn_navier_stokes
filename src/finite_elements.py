@@ -1,8 +1,7 @@
 from fenics import *
 from mshr import *
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.tri as tri
+import scipy.io
 
 T = 5.0            # final time
 num_steps = 5000   # number of time steps
@@ -91,16 +90,12 @@ A3 = assemble(a3)
 [bc.apply(A1) for bc in bcu]
 [bc.apply(A2) for bc in bcp]
 
-# Create XDMF files for visualization output
-xdmffile_u = XDMFFile('navier_stokes_cylinder/velocity.xdmf')
-xdmffile_p = XDMFFile('navier_stokes_cylinder/pressure.xdmf')
-
-# Create time series (for use in reaction_system.py)
-timeseries_u = TimeSeries('navier_stokes_cylinder/velocity_series')
-timeseries_p = TimeSeries('navier_stokes_cylinder/pressure_series')
-
 # Save mesh to file (for use in reaction_system.py)
 File('navier_stokes_cylinder/cylinder.xml.gz') << mesh
+
+# Initialize arrays to store solutions
+velocity_data = []
+pressure_data = []
 
 # Time-stepping
 t = 0
@@ -122,13 +117,9 @@ for n in range(num_steps):
     b3 = assemble(L3)
     solve(A3, u_.vector(), b3, 'cg', 'sor')
 
-    # Save solution to file (XDMF/HDF5)
-    xdmffile_u.write(u_, t)
-    xdmffile_p.write(p_, t)
-
-    # Save nodal values to file
-    timeseries_u.store(u_.vector(), t)
-    timeseries_p.store(p_.vector(), t)
+    # Append solutions to arrays
+    velocity_data.append(u_.vector().get_local())
+    pressure_data.append(p_.vector().get_local())
 
     # Update previous solution
     u_n.assign(u_)
@@ -138,4 +129,6 @@ for n in range(num_steps):
     if n % 100 == 0 or n == num_steps - 1:
         print(f"Time step {n+1}/{num_steps}, Time: {t:.2f}, u max: {u_.vector().get_local().max()}")
 
-
+# Save the velocity and pressure data in .mat format
+scipy.io.savemat('navier_stokes_cylinder/velocity.mat', {'velocity': velocity_data})
+scipy.io.savemat('navier_stokes_cylinder/pressure.mat', {'pressure': pressure_data})
